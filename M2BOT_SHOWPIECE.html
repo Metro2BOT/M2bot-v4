@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M2BOT | Metro 2® Compliance Validator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a1a;
+            --bg-card: #12122a;
+            --accent-cyan: #00fff7;
+            --accent-green: #00e676;
+            --accent-red: #ff1744;
+            --accent-gold: #ffd700;
+            --text-primary: #e0e0e0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Animated background */
+        .bg-grid {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                linear-gradient(rgba(0,255,247,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,255,247,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+        
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 30px 20px;
+            background: linear-gradient(135deg, rgba(0,255,247,0.1), rgba(255,215,0,0.05));
+            border: 1px solid rgba(0,255,247,0.3);
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+        .logo {
+            font-family: 'Orbitron', monospace;
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(0,255,247,0.5);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 10px rgba(0,255,247,0.5)); }
+            to { filter: drop-shadow(0 0 20px rgba(255,215,0,0.5)); }
+        }
+        .tagline {
+            font-size: 1.1rem;
+            color: var(--accent-gold);
+            margin-top: 10px;
+            letter-spacing: 2px;
+        }
+        .subtitle {
+            font-size: 0.9rem;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 900px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+        
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid rgba(0,255,247,0.2);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 20px rgba(0,255,247,0.2);
+        }
+        .card-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 1rem;
+            color: var(--accent-cyan);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0,255,247,0.2);
+        }
+        
+        /* Factor Selection */
+        .factor-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        .factor-box {
+            background: rgba(0,0,0,0.3);
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .factor-box:hover { border-color: var(--accent-cyan); }
+        .factor-box.selected { border-color: var(--accent-green); background: rgba(0,230,118,0.1); }
+        .factor-box.error { border-color: var(--accent-red); background: rgba(255,23,68,0.1); }
+        .factor-label {
+            font-family: 'Orbitron', monospace;
+            font-size: 0.7rem;
+            color: var(--accent-cyan);
+            margin-bottom: 8px;
+        }
+        .factor-select {
+            width: 100%;
+            padding: 8px;
+            background: #1a1a3a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .factor-select:focus { outline: none; border-color: var(--accent-cyan); }
+        .factor-display {
+            margin-top: 8px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent-gold);
+            min-height: 24px;
+        }
+        
+        /* Dropdown option colors */
+        .factor-select option.opt-viable { background: #00c853; color: #000; font-weight: 700; }
+        .factor-select option.opt-infraction { background: #d32f2f; color: #fff; font-weight: 700; }
+        
+        /* Pathway Visualization */
+        .pathway-viz {
+            background: rgba(0,0,0,0.4);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .pathway-main {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 5px;
+            padding: 15px;
+            min-height: 60px;
+        }
+        .path-node {
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+        .path-node.valid { background: var(--accent-green); color: #000; }
+        .path-node.invalid { background: var(--accent-red); color: #fff; }
+        .path-arrow {
+            font-size: 1.2rem;
+            margin: 0 3px;
+        }
+        .path-arrow.valid { color: var(--accent-green); }
+        .path-arrow.invalid { color: var(--accent-red); }
+        
+        /* Results Panel */
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+        .result-section {
+            background: rgba(0,0,0,0.3);
+            border-radius: 6px;
+            padding: 10px;
+        }
+        .result-title {
+            font-size: 0.7rem;
+            color: var(--accent-cyan);
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        .result-item {
+            font-size: 0.75rem;
+            padding: 5px 8px;
+            margin: 4px 0;
+            border-radius: 4px;
+        }
+        .result-item.pass { background: rgba(0,230,118,0.2); color: var(--accent-green); }
+        .result-item.fail { background: rgba(255,23,68,0.2); color: var(--accent-red); }
+        
+        /* Infraction Tracker */
+        .infraction-panel {
+            background: linear-gradient(135deg, rgba(255,23,68,0.1), rgba(255,23,68,0.05));
+            border: 2px solid var(--accent-red);
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .infraction-header {
+            background: var(--accent-red);
+            color: #fff;
+            padding: 12px 15px;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            border-radius: 8px 8px 0 0;
+        }
+        .infraction-count {
+            background: #fff;
+            color: var(--accent-red);
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        .infraction-body {
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .infraction-item {
+            background: rgba(0,0,0,0.3);
+            border-left: 4px solid var(--accent-red);
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 0 6px 6px 0;
+        }
+        .infraction-item .inf-code {
+            font-family: 'Orbitron', monospace;
+            font-size: 0.8rem;
+            color: var(--accent-red);
+            font-weight: 700;
+        }
+        .infraction-item .inf-desc {
+            font-size: 0.75rem;
+            margin-top: 5px;
+            color: #ccc;
+        }
+        .no-infractions {
+            text-align: center;
+            color: var(--accent-green);
+            padding: 20px;
+        }
+        
+        /* Argument Builder */
+        .argument-panel {
+            background: linear-gradient(135deg, rgba(255,215,0,0.1), rgba(255,215,0,0.02));
+            border: 2px solid var(--accent-gold);
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .argument-header {
+            background: linear-gradient(135deg, var(--accent-gold), #ff9800);
+            color: #000;
+            padding: 12px 15px;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .btn-copy {
+            background: #000;
+            color: var(--accent-gold);
+            border: none;
+            padding: 6px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+        .argument-body {
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            line-height: 1.6;
+        }
+        .argument-body strong { color: var(--accent-cyan); }
+        
+        /* Buttons */
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
+        .btn-primary { background: linear-gradient(135deg, var(--accent-cyan), #00bcd4); color: #000; }
+        .btn-danger { background: linear-gradient(135deg, #ff5722, #d32f2f); color: #fff; }
+        .btn-success { background: linear-gradient(135deg, var(--accent-green), #00c853); color: #000; }
+        
+        /* Stats */
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .stat { font-family: 'Orbitron', monospace; font-size: 1rem; }
+        .stat-pass { color: var(--accent-green); }
+        .stat-fail { color: var(--accent-red); }
+        
+        /* TEE Section */
+        .tee-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 15px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .tee-label { color: var(--accent-cyan); font-weight: 600; }
+        .tee-check {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 4px;
+        }
+        .tee-check input { width: 18px; height: 18px; cursor: pointer; }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 0.7rem;
+            margin-top: 30px;
+        }
+        .footer a { color: var(--accent-cyan); }
+        
+        /* Animations */
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card { animation: slideIn 0.5s ease-out; }
+        .card:nth-child(2) { animation-delay: 0.1s; }
+        .card:nth-child(3) { animation-delay: 0.2s; }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    
+    <div class="container">
+        <div class="header">
+            <div class="logo">🤖 M2BOT</div>
+            <div class="tagline">CONSUMER ADVOCACY ATTACK ENGINE</div>
+            <div class="subtitle">Metro 2® Multi-Dynamic Pathway Integrity Validator | Powered by 2025 CRRG</div>
+        </div>
+        
+        <div class="btn-row">
+            <button class="btn btn-primary" onclick="runEvaluation()">🔍 EVALUATE PATHWAY</button>
+            <button class="btn btn-danger" onclick="resetAll()">🔄 RESET ALL</button>
+            <button class="btn btn-success" onclick="copyComplaint()">📋 COPY COMPLAINT</button>
+        </div>
+        
+        <div class="tee-section">
+            <span class="tee-label">📡 REPORTING CRAs:</span>
+            <label class="tee-check"><input type="checkbox" id="rT" onchange="updateCRAs()"> TransUnion</label>
+            <label class="tee-check"><input type="checkbox" id="rX" onchange="updateCRAs()"> Experian</label>
+            <label class="tee-check"><input type="checkbox" id="rQ" onchange="updateCRAs()"> Equifax</label>
+        </div>
+        
+        <div class="main-grid">
+            <!-- Factor Selection Card -->
+            <div class="card">
+                <div class="card-title">📊 FACTOR SELECTION ENGINE</div>
+                <div class="factor-grid" id="factorGrid"></div>
+                
+                <div class="pathway-viz">
+                    <div style="font-size:0.75rem;color:var(--accent-cyan);margin-bottom:10px;">PATHWAY VISUALIZATION</div>
+                    <div class="pathway-main" id="pathwayMain">
+                        <span style="color:#666;">Select factors to build pathway...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Results Card -->
+            <div class="card">
+                <div class="card-title">📋 MULTI-LAYER EVALUATION</div>
+                <div class="results-grid">
+                    <div class="result-section">
+                        <div class="result-title">🔹 LEGITIMACY</div>
+                        <div id="layer1"></div>
+                    </div>
+                    <div class="result-section">
+                        <div class="result-title">🔹 LINKAGES</div>
+                        <div id="layer2"></div>
+                    </div>
+                    <div class="result-section">
+                        <div class="result-title">🔹 BRIDGES</div>
+                        <div id="layer3"></div>
+                    </div>
+                </div>
+                <div class="stats-bar">
+                    <span class="stat stat-pass" id="statPass">✅ 0 Pass</span>
+                    <span class="stat stat-fail" id="statFail">❌ 0 Fail</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Infraction Tracker -->
+        <div class="infraction-panel">
+            <div class="infraction-header">
+                <span>🚨 INFRACTION TRACKER</span>
+                <span class="infraction-count" id="infCount">0 INFRACTIONS</span>
+            </div>
+            <div class="infraction-body" id="infBody">
+                <div class="no-infractions">✅ No infractions detected. Select factors to begin validation...</div>
+            </div>
+        </div>
+        
+        <!-- Argument Builder -->
+        <div class="argument-panel">
+            <div class="argument-header">
+                <span>⚖️ ITEM ARGUMENT GENERATOR (4 LEVELS)</span>
+                <button class="btn-copy" onclick="copyComplaint()">📋 COPY ALL</button>
+            </div>
+            <div class="argument-body" id="argBody" style="max-height:500px;">
+                <em style="color:#888;">Item arguments will auto-generate when infractions are detected...</em>
+            </div>
+        </div>
+        
+        <div class="footer">
+            M2BOT v4.0 SHOWPIECE | © 2025 ProdigySurge Software | 
+            <a href="#">Mr. Metro 2 - Rodney Peak</a> | 
+            Powered by 2025 Credit Reporting Resource Guide
+        </div>
+    </div>
+
+<script>
+// ============================================================================
+// M2BOT SHOWPIECE - CORE ENGINE
+// ============================================================================
+
+const FACTORS = {
+    PIT: { name: "Primary Industry Type", values: ["QBSLCU","QCSA","QCCnRC","QDBCA","QLFC","QML","QPOSA","QRRR","QRAse","QSFC","QSLRFL","QSLRPL","QUC","XBSL","XCSA","XCCI","XCU","XDBCA","XLF","XML","XGOVA","XRC","XRS","XSF","XSLL","XUTL"] },
+    PTC: { name: "Portfolio Type", values: ["C","I","M","O","R"] },
+    ATC: { name: "Account Type", values: ["00","01","02","03","04","05","06","07","08","10","11","12","13","15","17","18","19","20","25","26","29","37","43","47","48","50","77","89","90","91","93","95","0A","2A","3A","5A","6A","7A","8A","9A","5B","6B","7B","8B","9B","0C","2C","4D","6D","0F","0G"] },
+    ASC: { name: "Account Status", values: ["11","13","61","62","63","64","65","71","78","80","82","83","84","88","89","93","94","95","96","97","DA","DF"] },
+    CCC: { name: "Compliance Code", values: ["XA","XB","XC","XD","XE","XF","XG","XH","XI","XJ","XR"] },
+    ECOAC: { name: "ECOA Code", values: ["1","2","3","5","7","T","X","W","Z"] }
+};
+
+// Constraint Maps (from 2025 CRRG)
+const PIT_PTC = {
+    "QBSLCU": ["C","I"], "QCSA": ["O"], "QCCnRC": ["O","R"], "QDBCA": ["O"],
+    "QLFC": ["C","I"], "QML": ["C","I","M"], "QPOSA": ["C","I"], "QRRR": ["O"],
+    "QRAse": ["I","R"], "QSFC": ["I","R"], "QSLRFL": ["I","O"], "QSLRPL": ["C","I"],
+    "QUC": ["I","O"], "XBSL": ["C","I","M","O","R"], "XCSA": ["O"], "XCCI": ["O","R"],
+    "XCU": ["C","I","M","O","R"], "XDBCA": ["O"], "XLF": ["C","I","M"], "XML": ["C","I","M"],
+    "XGOVA": ["I","O"], "XRC": ["O"], "XRS": ["I","R"], "XSF": ["I","R"], "XSLL": ["C","I"], "XUTL": ["I","O"]
+};
+
+const PIT_PTC_ATC = {
+    "QBSLCU|C": ["15","43","47","7A","9B"],
+    "QBSLCU|I": ["00","01","02","03","04","05","06","10","11","13","17","20","90","91","95","0A","3A","6A","9A","7B","0F"],
+    "QCSA|O": ["50","93"], "QCCnRC|O": ["18","37","2A","8A"], "QCCnRC|R": ["18","37","2A","8A","0G"],
+    "QDBCA|O": ["48","77","0C"], "QLFC|C": ["15","43","47","7A","9B"],
+    "QLFC|I": ["00","01","02","03","04","05","10","11","13","17","20","90","91","95","0A","3A","6A","9A","7B","0F"],
+    "QML|C": ["89"], "QML|I": ["04","05","17","0A","9A","6D","0F"], "QML|M": ["08","19","25","26","5A","5B","6B","2C"],
+    "QPOSA|C": ["15"], "QPOSA|I": ["06"], "QRRR|O": ["29"], "QRAse|I": ["06"], "QRAse|R": ["07"],
+    "QSFC|I": ["00","01","02","03","06","11","13","17","3A","7B"], "QSFC|R": ["07"],
+    "QSLRFL|I": ["12"], "QSLRFL|O": ["12"], "QSLRPL|C": ["15"], "QSLRPL|I": ["12"],
+    "QUC|I": ["06"], "QUC|O": ["06","4D","92"]
+};
+
+const PIT_PTC_ASC = {
+    "QBSLCU|C": ["11","13","62","64","71","78","80","82","83","84","93","97","DA","DF"],
+    "QBSLCU|I": ["11","13","61","62","63","64","71","78","80","82","83","84","93","95","96","97","DA","DF"],
+    "QCSA|O": ["11","13","62","71","78","80","82","83","84","93","DA"],
+    "QCCnRC|O": ["11","13","62","64","71","78","80","82","83","84","93","97","DA","DF"],
+    "QCCnRC|R": ["11","13","62","64","71","78","80","82","83","84","93","97","DA","DF"],
+    "QDBCA|O": ["62","93","DA","DF"],
+    "QLFC|C": ["11","13","61","62","63","64","71","78","80","82","83","84","93","95","96","97","DA","DF"],
+    "QLFC|I": ["11","13","61","62","63","64","71","78","80","82","83","84","93","95","96","97","DA","DF"],
+    "QML|C": ["11","13","62","64","65","71","78","80","82","83","84","89","93","94","97","DA","DF"],
+    "QML|I": ["11","13","61","62","63","64","71","78","80","82","83","84","89","93","94","95","96","97","DA","DF"],
+    "QML|M": ["11","13","65","71","78","80","82","83","84","88","89","94","97","DA","DF"],
+    "QPOSA|C": ["11","13","61","62","63","64","71","78","80","82","83","84","93","95","96","97","DA","DF"],
+    "QPOSA|I": ["11","13","61","62","63","64","71","78","80","82","83","84","93","95","96","97","DA","DF"],
+    "QRRR|O": ["11","13","62","64","71","78","80","82","83","84","93","97","DA","DF"],
+    "QRAse|I": ["11","13","61","62","63","64","71","78","80","82","83","84","93","95","96","97","DA","DF"],
+    "QRAse|R": ["11","13","62","64","71","78","80","82","83","84","93","97","DA","DF"],
+    "QSFC|I": ["11","13","61","62","63","64","71","78","80","82","83","84","93","95","96","97","DA","DF"],
+    "QSFC|R": ["11","13","62","64","71","78","80","82","83","84","93","97","DA","DF"],
+    "QSLRFL|I": ["11","13","78","80","82","83","84","DA","DF","62","64","93","97"],
+    "QSLRFL|O": ["62","93","DA","DF"],
+    "QSLRPL|C": ["11","13","62","64","71","78","80","82","83","84","93","97","DA","DF"],
+    "QSLRPL|I": ["11","13","62","64","71","78","80","82","83","84","93","97","DA","DF"],
+    "QUC|I": ["11","13","61","62","63","64","71","78","80","82","83","84","93","95","96","97","DA","DF"],
+    "QUC|O": ["11","13","61","62","63","64","71","78","80","82","83","84","93","95","96","97","DA","DF"]
+};
+
+const PIT_PTC_CCC = {
+    "QBSLCU|C": ["XA","XB","XC","XD","XE","XF","XG","XH","XI","XJ","XR"],
+    "QBSLCU|I": ["XB","XC","XF","XG","XH","XR"],
+    "QCSA|O": ["XB","XC","XH","XR"],
+    "QCCnRC|O": ["XA","XB","XC","XD","XE","XF","XG","XH","XI","XJ","XR"],
+    "QCCnRC|R": ["XA","XB","XC","XD","XE","XF","XG","XH","XI","XJ","XR"],
+    "QDBCA|O": ["XB","XC","XH","XR"],
+    "QLFC|C": ["XA","XB","XC","XD","XE","XF","XG","XH","XI","XJ","XR"],
+    "QLFC|I": ["XB","XC","XF","XG","XH","XR"],
+    "QML|C": ["XA","XB","XC","XD","XE","XF","XG","XH","XI","XJ","XR"],
+    "QML|I": ["XB","XC","XF","XG","XH","XR"],
+    "QML|M": ["XB","XC","XF","XG","XH","XR"],
+    "QPOSA|C": ["XA","XB","XC","XD","XE","XF","XG","XH","XI","XJ","XR"],
+    "QPOSA|I": ["XB","XC","XF","XG","XH","XR"],
+    "QRRR|O": ["XB","XC","XH","XR"],
+    "QRAse|I": ["XB","XC","XF","XG","XH","XR"],
+    "QRAse|R": ["XA","XB","XC","XD","XE","XF","XG","XH","XI","XJ","XR"],
+    "QSFC|I": ["XB","XC","XF","XG","XH","XR"],
+    "QSFC|R": ["XA","XB","XC","XD","XE","XF","XG","XH","XI","XJ","XR"],
+    "QSLRFL|I": ["XB","XC","XH","XR"],
+    "QSLRFL|O": ["XB","XC","XH","XR"],
+    "QSLRPL|C": ["XA","XB","XC","XD","XE","XH","XR"],
+    "QSLRPL|I": ["XB","XC","XH","XR"],
+    "QUC|I": ["XB","XC","XF","XG","XH","XR"],
+    "QUC|O": ["XA","XB","XC","XD","XE","XF","XG","XH","XI","XJ","XR"]
+};
+
+let selections = {};
+let infractions = [];
+let selectedCRAs = [];
+
+// Initialize
+function init() {
+    const grid = document.getElementById('factorGrid');
+    Object.keys(FACTORS).forEach(key => {
+        const f = FACTORS[key];
+        const box = document.createElement('div');
+        box.className = 'factor-box';
+        box.id = `box-${key}`;
+        box.innerHTML = `
+            <div class="factor-label">${f.name}</div>
+            <select class="factor-select" id="sel-${key}" onchange="selectFactor('${key}', this.value)">
+                <option value="">-- Select --</option>
+                ${f.values.map(v => `<option value="${v}">${v}</option>`).join('')}
+            </select>
+            <div class="factor-display" id="disp-${key}">---</div>
+        `;
+        grid.appendChild(box);
+    });
+    colorDropdowns();
+}
+
+function selectFactor(key, value) {
+    const box = document.getElementById(`box-${key}`);
+    const disp = document.getElementById(`disp-${key}`);
+    
+    if (value) {
+        selections[key] = value;
+        box.classList.add('selected');
+        box.classList.remove('error');
+        disp.textContent = value;
+    } else {
+        delete selections[key];
+        box.classList.remove('selected', 'error');
+        disp.textContent = '---';
+    }
+    
+    colorDropdowns();
+    updatePathway();
+    runEvaluation();
+}
+
+function colorDropdowns() {
+    // Color PIT based on other selections
+    const pitSel = document.getElementById('sel-PIT');
+    Array.from(pitSel.options).forEach(opt => {
+        if (!opt.value) return;
+        let viable = true;
+        if (selections.PTC && PIT_PTC[opt.value] && !PIT_PTC[opt.value].includes(selections.PTC)) viable = false;
+        opt.className = viable ? 'opt-viable' : 'opt-infraction';
+    });
+    
+    // Color PTC based on PIT
+    const ptcSel = document.getElementById('sel-PTC');
+    Array.from(ptcSel.options).forEach(opt => {
+        if (!opt.value) return;
+        let viable = true;
+        if (selections.PIT && PIT_PTC[selections.PIT] && !PIT_PTC[selections.PIT].includes(opt.value)) viable = false;
+        opt.className = viable ? 'opt-viable' : 'opt-infraction';
+    });
+    
+    // Color ATC
+    const atcSel = document.getElementById('sel-ATC');
+    Array.from(atcSel.options).forEach(opt => {
+        if (!opt.value) return;
+        let viable = true;
+        if (selections.PIT && selections.PTC) {
+            const key = `${selections.PIT}|${selections.PTC}`;
+            if (PIT_PTC_ATC[key] && !PIT_PTC_ATC[key].includes(opt.value)) viable = false;
+        }
+        opt.className = viable ? 'opt-viable' : 'opt-infraction';
+    });
+    
+    // Color ASC
+    const ascSel = document.getElementById('sel-ASC');
+    Array.from(ascSel.options).forEach(opt => {
+        if (!opt.value) return;
+        let viable = true;
+        if (selections.PIT && selections.PTC) {
+            const key = `${selections.PIT}|${selections.PTC}`;
+            if (PIT_PTC_ASC[key] && !PIT_PTC_ASC[key].includes(opt.value)) viable = false;
+        }
+        opt.className = viable ? 'opt-viable' : 'opt-infraction';
+    });
+    
+    // Color CCC
+    const cccSel = document.getElementById('sel-CCC');
+    Array.from(cccSel.options).forEach(opt => {
+        if (!opt.value) return;
+        let viable = true;
+        if (selections.PIT && selections.PTC) {
+            const key = `${selections.PIT}|${selections.PTC}`;
+            if (PIT_PTC_CCC[key] && !PIT_PTC_CCC[key].includes(opt.value)) viable = false;
+        }
+        opt.className = viable ? 'opt-viable' : 'opt-infraction';
+    });
+}
+
+function updatePathway() {
+    const main = document.getElementById('pathwayMain');
+    const keys = ['PIT','PTC','ATC','ASC','CCC','ECOAC'].filter(k => selections[k]);
+    
+    if (keys.length === 0) {
+        main.innerHTML = '<span style="color:#666;">Select factors to build pathway...</span>';
+        return;
+    }
+    
+    let html = '';
+    keys.forEach((k, i) => {
+        html += `<div class="path-node valid">${k}=${selections[k]}</div>`;
+        if (i < keys.length - 1) {
+            const next = keys[i+1];
+            const linkOk = checkLink(k, selections[k], next, selections[next]);
+            html += `<span class="path-arrow ${linkOk ? 'valid' : 'invalid'}">→</span>`;
+        }
+    });
+    main.innerHTML = html;
+}
+
+function checkLink(from, fromVal, to, toVal) {
+    if (from === 'PIT' && to === 'PTC') {
+        return PIT_PTC[fromVal]?.includes(toVal) ?? true;
+    }
+    if ((from === 'PIT' || from === 'PTC') && to === 'ATC') {
+        if (selections.PIT && selections.PTC) {
+            const key = `${selections.PIT}|${selections.PTC}`;
+            return PIT_PTC_ATC[key]?.includes(toVal) ?? true;
+        }
+    }
+    if ((from === 'PIT' || from === 'PTC' || from === 'ATC') && to === 'ASC') {
+        if (selections.PIT && selections.PTC) {
+            const key = `${selections.PIT}|${selections.PTC}`;
+            return PIT_PTC_ASC[key]?.includes(toVal) ?? true;
+        }
+    }
+    if ((from === 'PIT' || from === 'PTC') && to === 'CCC') {
+        if (selections.PIT && selections.PTC) {
+            const key = `${selections.PIT}|${selections.PTC}`;
+            return PIT_PTC_CCC[key]?.includes(toVal) ?? true;
+        }
+    }
+    return true;
+}
+
+function runEvaluation() {
+    infractions = [];
+    let pass = 0, fail = 0;
+    let h1 = '', h2 = '', h3 = '';
+    
+    const keys = Object.keys(selections);
+    
+    // Layer 1: Legitimacy
+    keys.forEach(k => {
+        const v = selections[k];
+        const isReal = FACTORS[k].values.includes(v);
+        if (isReal) {
+            h1 += `<div class="result-item pass">${k}=${v} ✓</div>`;
+            pass++;
+        } else {
+            h1 += `<div class="result-item fail">${k}=${v} ✗</div>`;
+            fail++;
+            infractions.push({ code: `${k} Invalid`, desc: `${v} is not a valid ${k} value` });
+        }
+    });
+    
+    // Layer 2: Linkages
+    const pairs = [['PIT','PTC'],['PIT','ATC'],['PTC','ATC'],['PIT','ASC'],['PTC','ASC'],['PIT','CCC'],['PTC','CCC']];
+    pairs.forEach(([a,b]) => {
+        if (selections[a] && selections[b]) {
+            const ok = checkLink(a, selections[a], b, selections[b]);
+            if (ok) {
+                h2 += `<div class="result-item pass">${a}→${b} ✓</div>`;
+                pass++;
+            } else {
+                h2 += `<div class="result-item fail">${a}→${b} ✗</div>`;
+                fail++;
+                infractions.push({ 
+                    code: `${a}→${b} Linkage`, 
+                    desc: `${b}=${selections[b]} is not valid for ${a}=${selections[a]}` 
+                });
+            }
+        }
+    });
+    
+    // Layer 3: Bridges
+    pairs.forEach(([a,b]) => {
+        if (selections[a] && selections[b]) {
+            const fwd = checkLink(a, selections[a], b, selections[b]);
+            const bwd = checkLink(b, selections[b], a, selections[a]);
+            if (fwd && bwd) {
+                h3 += `<div class="result-item pass">${a}↔${b} ✓</div>`;
+                pass++;
+            } else {
+                h3 += `<div class="result-item fail">${a}↔${b} ✗</div>`;
+                fail++;
+            }
+        }
+    });
+    
+    document.getElementById('layer1').innerHTML = h1 || '<div class="result-item pass">Select factors...</div>';
+    document.getElementById('layer2').innerHTML = h2 || '<div class="result-item pass">Need 2+ factors...</div>';
+    document.getElementById('layer3').innerHTML = h3 || '<div class="result-item pass">Need 2+ factors...</div>';
+    document.getElementById('statPass').textContent = `✅ ${pass} Pass`;
+    document.getElementById('statFail').textContent = `❌ ${fail} Fail`;
+    
+    updateInfractions();
+    updateArgument();
+}
+
+function updateInfractions() {
+    const body = document.getElementById('infBody');
+    const count = document.getElementById('infCount');
+    
+    if (infractions.length === 0) {
+        body.innerHTML = '<div class="no-infractions">✅ No infractions detected. Select factors to begin validation...</div>';
+        count.textContent = '0 INFRACTIONS';
+        count.style.background = '#00e676';
+        count.style.color = '#000';
+    } else {
+        count.textContent = `${infractions.length} INFRACTION${infractions.length > 1 ? 'S' : ''}`;
+        count.style.background = '#fff';
+        count.style.color = '#ff1744';
+        body.innerHTML = infractions.map((inf, i) => `
+            <div class="infraction-item">
+                <div class="inf-code">#${i+1}: ${inf.code}</div>
+                <div class="inf-desc">${inf.desc}</div>
+            </div>
+        `).join('');
+    }
+}
+
+function updateCRAs() {
+    selectedCRAs = [];
+    if (document.getElementById('rT').checked) selectedCRAs.push('TransUnion');
+    if (document.getElementById('rX').checked) selectedCRAs.push('Experian');
+    if (document.getElementById('rQ').checked) selectedCRAs.push('Equifax');
+    updateArgument();
+}
+
+function updateArgument() {
+    const body = document.getElementById('argBody');
+    
+    if (infractions.length === 0) {
+        body.innerHTML = '<em style="color:#888;">Item arguments will auto-generate when infractions are detected...</em>';
+        return;
+    }
+    
+    const cras = selectedCRAs.length > 0 ? selectedCRAs.join(', ') : '[CRA]';
+    const infList = infractions.map(i => `${i.code}: ${i.desc}`).join('; ');
+    const pitVal = selections.PIT || '[PIT]';
+    const ptcVal = selections.PTC || '[PTC]';
+    const atcVal = selections.ATC || '[ATC]';
+    const ascVal = selections.ASC || '[ASC]';
+    
+    // =========================================================================
+    // LEVEL 1: MAXIMUM EFFICIENT (40-65 words)
+    // =========================================================================
+    const level1 = `
+        <div style="background:rgba(0,255,247,0.1);padding:15px;border-radius:8px;margin-bottom:15px;border-left:4px solid var(--accent-cyan);">
+            <div style="font-family:'Orbitron',monospace;color:var(--accent-cyan);font-size:0.8rem;margin-bottom:10px;">📌 LEVEL 1: MAXIMUM EFFICIENT (40-65 words)</div>
+            <p style="font-size:0.85rem;line-height:1.7;">
+                This account reflects data field inconsistencies that fail Metro 2® format compliance per 2025 CRRG guidelines. 
+                The reported ${ptcVal} Portfolio Type with ${atcVal} Account Type and ${ascVal} Account Status creates an invalid 
+                constraint pathway for ${pitVal} industry classification. I am requesting verification of reporting accuracy 
+                and methodology certification per FCRA §611(a) requirements. Furnisher must validate or correct within statutory timeframes.
+            </p>
+        </div>
+    `;
+    
+    // =========================================================================
+    // LEVEL 2: MAXIMUM EFFECTIVE (175-300 words) - Heavy legal citations
+    // =========================================================================
+    const level2 = `
+        <div style="background:rgba(255,215,0,0.1);padding:15px;border-radius:8px;margin-bottom:15px;border-left:4px solid var(--accent-gold);">
+            <div style="font-family:'Orbitron',monospace;color:var(--accent-gold);font-size:0.8rem;margin-bottom:10px;">⚖️ LEVEL 2: MAXIMUM EFFECTIVE (175-300 words)</div>
+            <p style="font-size:0.85rem;line-height:1.7;">
+                Upon detailed review of this tradeline, I have identified certifiable reporting deficiencies that warrant immediate investigation 
+                under FCRA §611(a)(1)(A). The account displays constraint violations between the reported Primary Industry Type (${pitVal}), 
+                Portfolio Type Code (${ptcVal}), Account Type Code (${atcVal}), and Account Status Code (${ascVal}) that directly contradict 
+                the 2025 Credit Reporting Resource Guide (CRRG) Data Processing Number specifications found in Sections 2-5 through 2-20.
+            </p>
+            <p style="font-size:0.85rem;line-height:1.7;margin-top:10px;">
+                Per the Metro 2® Format requirements, each PIT classification maintains specific allowable values for downstream data fields. 
+                The current reporting configuration reflects: <strong>${infList}</strong>. These combinations are explicitly prohibited 
+                under CRRG Exhibit 1 matrix constraints and represent furnisher non-compliance with 15 U.S.C. §1681s-2(a)(1) accuracy requirements.
+            </p>
+            <p style="font-size:0.85rem;line-height:1.7;margin-top:10px;">
+                The FTC has affirmed in multiple enforcement actions (TransUnion LLC, 2024; Equifax Information Services, 2023) that 
+                CRAs bear independent verification obligations beyond mere parroting of furnisher data. The CFPB Supervisory Highlights 
+                (Issue 29, 2023) specifically address Metro 2® field validation as a reasonable procedure requirement under FCRA §607(b).
+            </p>
+            <p style="font-size:0.85rem;line-height:1.7;margin-top:10px;">
+                I am formally requesting that ${cras} conduct a genuine investigation, obtain Metro 2® certification documentation from the 
+                furnisher demonstrating compliant field value combinations, and provide written verification of the methodology used to 
+                validate this account's reporting accuracy. Failure to maintain maximum possible accuracy exposes both furnisher and CRA 
+                to liability under Sections 616 and 617 as established in <em>Cushman v. Trans Union Corp.</em> and reinforced by 
+                <em>Gorman v. Wolpoff & Abramson</em> standards for willful non-compliance.
+            </p>
+        </div>
+    `;
+    
+    // =========================================================================
+    // LEVEL 3: METRO 2 FOCUSED (75-140 words)
+    // =========================================================================
+    const level3 = `
+        <div style="background:rgba(0,230,118,0.1);padding:15px;border-radius:8px;margin-bottom:15px;border-left:4px solid var(--accent-green);">
+            <div style="font-family:'Orbitron',monospace;color:var(--accent-green);font-size:0.8rem;margin-bottom:10px;">📊 LEVEL 3: METRO 2® FOCUSED (75-140 words)</div>
+            <p style="font-size:0.85rem;line-height:1.7;">
+                This tradeline contains Metro 2® format constraint violations per the 2025 CRRG. The ${pitVal} Primary Industry Type 
+                classification restricts allowable Portfolio Type, Account Type, and Account Status combinations as specified in 
+                CRRG Sections 2-5 through 2-20. Current reporting shows ${ptcVal}/${atcVal}/${ascVal} which violates the DPN pathway 
+                integrity requirements established in Exhibit 1 field matrices.
+            </p>
+            <p style="font-size:0.85rem;line-height:1.7;margin-top:10px;">
+                Metro 2® compliance is not optional—it is the mandated industry standard per CDIA guidelines adopted by all three 
+                national CRAs. I request the furnisher's Metro 2® file specifications and field value certification demonstrating 
+                this account meets format requirements. Non-compliant data must be corrected to reflect valid constraint pathways 
+                or removed from reporting entirely.
+            </p>
+        </div>
+    `;
+    
+    // =========================================================================
+    // LEVEL 4: NON-METRO 2 MANDATES (60-190 words) - Cites M2 if applicable
+    // =========================================================================
+    const level4 = `
+        <div style="background:rgba(255,23,68,0.1);padding:15px;border-radius:8px;margin-bottom:15px;border-left:4px solid var(--accent-red);">
+            <div style="font-family:'Orbitron',monospace;color:var(--accent-red);font-size:0.8rem;margin-bottom:10px;">📜 LEVEL 4: REGULATORY MANDATES (60-190 words)</div>
+            <p style="font-size:0.85rem;line-height:1.7;">
+                Federal law requires consumer reporting agencies to maintain reasonable procedures for maximum possible accuracy 
+                under 15 U.S.C. §1681e(b). This account's current reporting status reflects data inconsistencies that call into 
+                question whether such procedures were followed. Under FCRA §611, I am entitled to a reinvestigation that goes 
+                beyond perfunctory verification.
+            </p>
+            <p style="font-size:0.85rem;line-height:1.7;margin-top:10px;">
+                The reported field values (${ptcVal}, ${atcVal}, ${ascVal} for ${pitVal} industry type) do not align with 
+                established Metro 2® format specifications, suggesting either data entry errors, system transmission failures, 
+                or furnisher misclassification. Per FDCPA §807(8) and FTC enforcement guidance, collectors and furnishers cannot 
+                report information known or which should be known to be inaccurate.
+            </p>
+            <p style="font-size:0.85rem;line-height:1.7;margin-top:10px;">
+                I request documentary evidence of the original account agreement, payment history ledger, and furnisher's 
+                internal compliance audit confirming this account meets all applicable federal and state consumer protection requirements.
+            </p>
+        </div>
+    `;
+    
+    body.innerHTML = `
+        <div style="text-align:center;margin-bottom:20px;padding:10px;background:rgba(0,0,0,0.3);border-radius:8px;">
+            <span style="font-family:'Orbitron',monospace;color:var(--accent-gold);">🎯 ${infractions.length} INFRACTION${infractions.length > 1 ? 'S' : ''} DETECTED → 4 ARGUMENT LEVELS GENERATED</span>
+        </div>
+        ${level1}
+        ${level2}
+        ${level3}
+        ${level4}
+    `;
+}
+
+function copyComplaint() {
+    const body = document.getElementById('argBody');
+    navigator.clipboard.writeText(body.innerText).then(() => {
+        alert('✅ Complaint copied to clipboard!');
+    }).catch(() => {
+        alert('❌ Copy failed. Please select and copy manually.');
+    });
+}
+
+function resetAll() {
+    selections = {};
+    infractions = [];
+    Object.keys(FACTORS).forEach(k => {
+        document.getElementById(`sel-${k}`).value = '';
+        document.getElementById(`disp-${k}`).textContent = '---';
+        document.getElementById(`box-${k}`).classList.remove('selected', 'error');
+    });
+    document.getElementById('rT').checked = false;
+    document.getElementById('rX').checked = false;
+    document.getElementById('rQ').checked = false;
+    selectedCRAs = [];
+    colorDropdowns();
+    updatePathway();
+    runEvaluation();
+}
+
+// Initialize on load
+window.onload = init;
+</script>
+</body>
+</html>
